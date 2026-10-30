@@ -1,6 +1,7 @@
 node_modules/
 .env
 file/*.xlsx
+!file/StayHub_final.xlsx
 npm-debug.log*
 .DS_Store
 coverage/
