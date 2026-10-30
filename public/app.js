@@ -43,13 +43,6 @@ function formatNumber(value, maximumFractionDigits = 0) {
     ? 'ไม่ระบุ' : Number(value).toLocaleString('th-TH', { maximumFractionDigits });
 }
 
-function formatDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return 'ไม่ระบุ';
-  const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
-    .format(new Date(Date.UTC(year, month - 1, day)));
-}
-
 function formatPercent(value, maximumFractionDigits = 1) {
   return value == null || !Number.isFinite(Number(value))
     ? 'ไม่ระบุ' : Number(value).toLocaleString('th-TH', { style: 'percent', maximumFractionDigits });
@@ -222,7 +215,7 @@ function createListingCard(item) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'button button-quiet card-action';
-  button.textContent = 'ดูรายละเอียดและรีวิว';
+  button.textContent = 'ดูรายละเอียด';
   button.addEventListener('click', (event) => { event.stopPropagation(); openListingDetail(item); });
   actions.append(mapButton, button);
   article.addEventListener('click', (event) => { if (!event.target.closest('button')) selectListingOnMap(item, true); });
@@ -527,179 +520,6 @@ function renderCalendar(activity, container) {
   container.append(heading, grid, note);
 }
 
-function formatReviewTimestamp(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'ไม่ระบุเวลา' : date.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function maskReviewerName(value) {
-  const characters = Array.from(String(value || '').trim().replace(/\s+/g, ''));
-  if (!characters.length) return 'ผู้เข้าพัก ••••';
-  if (characters.length === 1) return `${characters[0]}•••`;
-  return `${characters[0]}•••${characters.at(-1)}`;
-}
-
-function stableReviewHash(listingId, date, index) {
-  const seed = `${listingId}:${date}:${index}`;
-  let hash = 0;
-  for (const character of seed) hash = ((hash * 31) + character.charCodeAt(0)) >>> 0;
-  return hash;
-}
-
-function createHistoricalReviewMock(item, review, index) {
-  const hash = stableReviewHash(item.id, review.date, index);
-  const comments = [
-    'ห้องพักสะอาดและบรรยากาศโดยรวมดี เดินทางค่อนข้างสะดวก',
-    'ที่พักตรงกับรายละเอียด เหมาะสำหรับพักผ่อนและเดินทางในกรุงเทพฯ',
-    'ทำเลดี ใกล้ร้านอาหาร ห้องเป็นสัดส่วนและดูแลเรียบร้อย',
-    'การเช็กอินสะดวก ที่พักเงียบและเป็นส่วนตัวกว่าที่คาดไว้',
-    'พื้นที่ใช้งานกำลังดี อุปกรณ์พื้นฐานครบ และเดินทางไม่ยุ่งยาก',
-    'ประสบการณ์โดยรวมดี เหมาะกับการพักระยะสั้นและท่องเที่ยวในเมือง',
-    'ห้องดูเป็นระเบียบ บรรยากาศสบาย และเจ้าของให้ข้อมูลชัดเจน',
-    'ชอบทำเลและความเป็นส่วนตัว โดยรวมถือว่าคุ้มค่ากับการเข้าพัก',
-  ];
-  const hour = 8 + (hash % 14);
-  const minute = Math.floor(hash / 14) % 60;
-  return {
-    reviewer: `ผู้เข้าพัก •••${String((hash % 90) + 10).padStart(2, '0')}`,
-    rating: 3 + (hash % 3),
-    comment: comments[hash % comments.length],
-    time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} น.`,
-  };
-}
-
-function renderSourceReviewItems(item, reviews, container) {
-  container.replaceChildren();
-  if (!reviews.length) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-reviews';
-    empty.textContent = 'ยังไม่มีประวัติผู้เข้าพักที่รีวิวในข้อมูลต้นฉบับ';
-    container.append(empty);
-    return;
-  }
-
-  const ordered = [...reviews].reverse();
-  let visible = Math.min(6, ordered.length);
-  const cards = document.createElement('div'); cards.className = 'source-review-grid';
-  const action = document.createElement('button'); action.type = 'button'; action.className = 'button button-secondary source-review-more';
-
-  function draw() {
-    cards.replaceChildren();
-    ordered.slice(0, visible).forEach((review, index) => {
-      const mock = createHistoricalReviewMock(item, review, index);
-      const article = document.createElement('article'); article.className = 'source-review-card';
-      const avatar = document.createElement('span'); avatar.className = 'anonymous-review-avatar'; avatar.textContent = 'ผ';
-      const identity = document.createElement('div'); identity.className = 'source-review-identity';
-      const top = document.createElement('div'); top.className = 'source-review-top';
-      const name = document.createElement('strong'); name.textContent = mock.reviewer;
-      const badge = document.createElement('span'); badge.className = 'mock-review-badge'; badge.textContent = 'ข้อมูลจำลอง';
-      top.append(name, badge);
-      const meta = document.createElement('small'); meta.textContent = `ไม่เปิดเผยชื่อ · ${formatDate(review.date)} · ${mock.time}`;
-      const rating = document.createElement('span'); rating.className = 'review-rating source-review-rating';
-      rating.setAttribute('aria-label', `${mock.rating} จาก 5 ดาว ข้อมูลจำลอง`);
-      rating.textContent = `${'★'.repeat(mock.rating)}${'☆'.repeat(5 - mock.rating)}`;
-      const note = document.createElement('p'); note.className = 'source-review-comment'; note.textContent = mock.comment;
-      identity.append(top, meta, rating, note); article.append(avatar, identity); cards.append(article);
-    });
-    const remaining = ordered.length - visible;
-    action.hidden = remaining <= 0;
-    action.textContent = `ดูผู้รีวิวเพิ่มเติม (${formatNumber(remaining)})`;
-  }
-
-  action.addEventListener('click', () => { visible = Math.min(visible + 6, ordered.length); draw(); });
-  draw();
-  container.append(cards, action);
-}
-
-function renderLocalReviewItems(reviews, container) {
-  container.replaceChildren();
-  if (!reviews.length) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-reviews';
-    empty.textContent = 'ยังไม่มีรีวิวที่เขียนผ่านเว็บไซต์ เป็นคนแรกที่แบ่งปันประสบการณ์ได้เลย';
-    container.append(empty);
-    return;
-  }
-  reviews.forEach((review) => {
-    const article = document.createElement('article'); article.className = 'community-review';
-    const head = document.createElement('div'); head.className = 'community-review-head';
-    const reviewer = document.createElement('div'); reviewer.className = 'reviewer-identity';
-    const maskedName = maskReviewerName(review.reviewer?.name);
-    const avatar = document.createElement('span'); avatar.className = 'account-avatar guest'; avatar.textContent = maskedName.slice(0, 1) || 'ผ';
-    const copy = document.createElement('span');
-    const name = document.createElement('strong'); name.textContent = maskedName;
-    const date = document.createElement('small'); date.textContent = `ยืนยันบัญชีผู้เข้าพัก · ${formatReviewTimestamp(review.created_at)}`;
-    copy.append(name, date); reviewer.append(avatar, copy);
-    const rating = document.createElement('span'); rating.className = 'review-rating'; rating.textContent = `${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}`;
-    const comment = document.createElement('p'); comment.textContent = review.comment;
-    head.append(reviewer, rating); article.append(head, comment); container.append(article);
-  });
-}
-
-function createReviewComposer(item, list, count) {
-  const form = document.createElement('form'); form.className = 'review-composer'; form.noValidate = true;
-  const title = document.createElement('h4'); title.textContent = 'เขียนรีวิวที่พักนี้';
-  const description = document.createElement('p'); description.textContent = 'รีวิวจะเก็บในระบบ localhost แยกจาก Excel และแสดงทันทีบนเว็บไซต์';
-  const ratingLabel = document.createElement('span'); ratingLabel.className = 'review-field-label'; ratingLabel.textContent = 'คะแนน';
-  const stars = document.createElement('div'); stars.className = 'star-picker'; stars.setAttribute('role', 'radiogroup'); stars.setAttribute('aria-label', 'คะแนนรีวิว');
-  let selectedRating = 0;
-  for (let value = 1; value <= 5; value += 1) {
-    const star = document.createElement('button'); star.type = 'button'; star.textContent = '★'; star.dataset.rating = String(value); star.setAttribute('role', 'radio'); star.setAttribute('aria-checked', 'false'); star.setAttribute('aria-label', `${value} ดาว`);
-    star.addEventListener('click', () => {
-      selectedRating = value;
-      stars.querySelectorAll('button').forEach((button) => {
-        const active = Number(button.dataset.rating) <= selectedRating;
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-checked', String(Number(button.dataset.rating) === selectedRating));
-      });
-    });
-    stars.append(star);
-  }
-  const commentLabel = document.createElement('label'); commentLabel.textContent = 'เล่าประสบการณ์ของคุณ';
-  const comment = document.createElement('textarea'); comment.name = 'comment'; comment.rows = 4; comment.maxLength = 800; comment.placeholder = 'เช่น ทำเลเดินทางสะดวก ห้องสะอาด และเจ้าของตอบรวดเร็ว';
-  commentLabel.append(comment);
-  const status = document.createElement('p'); status.className = 'review-submit-status'; status.setAttribute('aria-live', 'polite');
-  const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'button button-primary'; submit.textContent = 'ส่งรีวิว';
-  form.append(title, description, ratingLabel, stars, commentLabel, status, submit);
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    status.className = 'review-submit-status';
-    if (!selectedRating) { status.textContent = 'กรุณาเลือกคะแนน 1–5 ดาว'; status.classList.add('error'); return; }
-    if (comment.value.trim().length < 3) { status.textContent = 'กรุณาเขียนรีวิวอย่างน้อย 3 ตัวอักษร'; status.classList.add('error'); comment.focus(); return; }
-    submit.disabled = true; submit.textContent = 'กำลังบันทึก…';
-    try {
-      await fetchJson('/api/reviews', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listing_id: item.id, request_id: createRequestId(), rating: selectedRating, comment: comment.value.trim() }),
-      });
-      const result = await fetchJson(`/api/reviews?listing_id=${encodeURIComponent(item.id)}`);
-      renderLocalReviewItems(result.reviews, list); count.textContent = `${formatNumber(result.total)} รีวิวจากเว็บไซต์`;
-      selectedRating = 0; comment.value = '';
-      stars.querySelectorAll('button').forEach((button) => { button.classList.remove('is-active'); button.setAttribute('aria-checked', 'false'); });
-      status.textContent = 'บันทึกรีวิวแล้ว ขอบคุณที่แบ่งปันประสบการณ์'; status.classList.add('success');
-    } catch (error) { status.textContent = error.message; status.classList.add('error'); }
-    finally { submit.disabled = false; submit.textContent = 'ส่งรีวิว'; }
-  });
-  return form;
-}
-
-async function renderCommunityReviews(item, container) {
-  const section = document.createElement('section'); section.className = 'community-reviews';
-  const heading = document.createElement('div'); heading.className = 'community-reviews-heading';
-  const copy = document.createElement('div');
-  const kicker = document.createElement('span'); kicker.className = 'section-kicker'; kicker.textContent = 'GUEST REVIEWS';
-  const title = document.createElement('h3'); title.textContent = 'รีวิวจากผู้ใช้ StayHub';
-  const count = document.createElement('p'); count.className = 'data-note'; count.textContent = 'กำลังโหลดรีวิว…';
-  copy.append(kicker, title); heading.append(copy, count);
-  const list = document.createElement('div'); list.className = 'community-review-list';
-  section.append(heading, list); container.append(section);
-  try {
-    const result = await fetchJson(`/api/reviews?listing_id=${encodeURIComponent(item.id)}`);
-    renderLocalReviewItems(result.reviews, list); count.textContent = `${formatNumber(result.total)} รีวิวจากเว็บไซต์`;
-  } catch (error) { list.textContent = error.message; count.textContent = 'โหลดรีวิวไม่สำเร็จ'; }
-  section.append(createReviewComposer(item, list, count));
-}
-
 async function openListingDetail(item) {
   selectListingOnMap(item, false);
   elements.listingDetail.replaceChildren();
@@ -716,30 +536,18 @@ async function openListingDetail(item) {
     detailFact('ราคาในชุดข้อมูล', formatNumber(item.price)),
     detailFact('คืนขั้นต่ำ', `${formatNumber(item.minimum_nights)} คืน`),
     detailFact('จำนวนรีวิว', formatNumber(item.number_of_reviews)),
-    detailFact('รีวิวล่าสุด', formatDate(item.last_review)),
-    detailFact('รีวิวต่อเดือน', formatNumber(item.reviews_per_month, 2)),
     detailFact('พร้อมให้บริการใน 365 วัน', `${formatNumber(item.availability_365)} วัน`),
     detailFact('พิกัด', item.latitude == null ? 'ไม่ระบุ' : `${item.latitude}, ${item.longitude}`),
   );
   const activityBox = document.createElement('div'); activityBox.className = 'activity-status';
-  activityBox.textContent = 'กำลังอ่านข้อมูลรีวิว ครั้งแรกอาจใช้เวลาสักครู่เพื่อสร้างดัชนีข้อมูล…';
+  activityBox.textContent = 'กำลังอ่านข้อมูลปฏิทิน…';
   body.append(facts, activityBox); elements.listingDetail.append(hero, heroImage, body);
   elements.listingDialog.showModal();
   try {
     const activity = await fetchJson(`/api/catalog/listings/${encodeURIComponent(item.id)}/activity`);
     activityBox.remove();
     renderCalendar(activity, body);
-    const reviewHeading = document.createElement('div'); reviewHeading.className = 'source-review-heading';
-    const reviewCopy = document.createElement('div');
-    const reviewTitle = document.createElement('h3'); reviewTitle.textContent = `ผู้เข้าพักที่รีวิว (${formatNumber(activity.reviews.length)} รายการ)`;
-    const reviewDescription = document.createElement('p'); reviewDescription.className = 'data-note';
-    reviewDescription.textContent = 'ปิดบังชื่อเพื่อความเป็นส่วนตัว · คะแนน ข้อความ และเวลาเป็นข้อมูลจำลองสำหรับการแสดงผลเท่านั้น และไม่ถูกใช้ในการวิเคราะห์';
-    reviewCopy.append(reviewTitle, reviewDescription); reviewHeading.append(reviewCopy);
-    const sourceReviews = document.createElement('div'); sourceReviews.className = 'source-review-list';
-    renderSourceReviewItems(item, activity.reviews, sourceReviews);
-    body.append(reviewHeading, sourceReviews);
   } catch (error) { activityBox.textContent = error.message; }
-  await renderCommunityReviews(item, body);
 }
 
 elements.closeDialog.addEventListener('click', () => elements.listingDialog.close());
