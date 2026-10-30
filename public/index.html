@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="StayHub สำรวจที่พัก รับข้อมูลประเมินราคา และแสดงผลคำนวณจาก Excel">
+  <title>StayHub · ข้อมูลที่พักกรุงเทพฯ</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#explore" aria-label="StayHub หน้าสำรวจ"><span class="brand-mark">SH</span><span><strong>StayHub</strong><small>Bangkok stays data</small></span></a>
+      <nav class="main-nav" aria-label="เมนูหลัก">
+        <button class="nav-link is-active" data-view="explore" type="button">หน้าหลัก</button>
+        <button class="nav-link" data-view="analytics" type="button">การวิเคราะห์</button>
+        <button class="nav-link" data-view="manage" type="button">เพิ่มข้อมูลประเมินที่พัก</button>
+      </nav>
+      <div class="header-tools">
+        <div class="profile-chip" aria-label="บัญชีผู้ใช้งานปัจจุบัน">
+          <span class="account-avatar">ส</span>
+          <span><strong>สมาชิก StayHub</strong><small>บัญชีผู้ใช้งาน</small></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="globalMessage" class="message global-message" role="status" aria-live="polite" hidden></div>
+
+    <section id="exploreView" class="view">
+      <div class="hero shell"><p class="eyebrow">STAYHUB BANGKOK</p><h1>ค้นหาและประเมินข้อมูลที่พัก</h1></div>
+      <div class="explore-layout shell">
+        <aside class="filter-panel panel">
+          <div class="panel-title-row"><div><p class="section-kicker">ตัวกรอง</p><h2>เงื่อนไขที่สนใจ</h2></div><button id="resetFilters" class="text-button" type="button">ล้างทั้งหมด</button></div>
+          <form id="filterForm">
+            <label>ค้นหาชื่อ เขต หรือ listing_id<input id="filterQuery" name="q" type="search" placeholder="เช่น Sukhumvit หรือ 27934"></label>
+            <label>เขต<select id="filterNeighbourhood" name="neighbourhood"><option value="">ทุกเขต</option></select></label>
+            <label>ประเภทห้อง<select id="filterRoomType" name="room_type"><option value="">ทุกประเภท</option></select></label>
+            <div class="field-pair"><label>ราคาต่ำสุด<input name="min_price" type="number" min="0" inputmode="decimal" placeholder="0"></label><label>ราคาสูงสุด<input name="max_price" type="number" min="0" inputmode="decimal" placeholder="ไม่จำกัด"></label></div>
+            <label>จำนวนคืนขั้นต่ำไม่เกิน<input name="max_minimum_nights" type="number" min="1" step="1" placeholder="ไม่จำกัด"></label>
+            <label>จำนวนรีวิวอย่างน้อย<input name="min_reviews" type="number" min="0" step="1" placeholder="0"></label>
+            <button class="button button-primary full-button" type="submit">แสดงผลตามตัวกรอง</button>
+          </form>
+        </aside>
+        <div class="explore-content">
+          <div class="result-toolbar"><div><p class="section-kicker">ผลการค้นหา</p><h2 id="resultCount">กำลังโหลดข้อมูล…</h2></div><p id="dataUpdated" class="data-note"></p></div>
+          <section class="map-panel" aria-labelledby="mapTitle">
+            <div class="map-heading"><div><h3 id="mapTitle">แผนที่ถนนกรุงเทพฯ แบบภาพประกอบ</h3><p id="mapNote">ชี้หรือคลิกการ์ดที่พักเพื่อแสดงบนแผนที่</p></div><div class="map-legend"><span><i class="legend-line route"></i> ถนนสายหลัก</span><span><i class="legend-line river"></i> แม่น้ำ</span></div></div>
+            <canvas id="mapCanvas" role="img" aria-label="แผนที่ถนนกรุงเทพฯ แบบภาพประกอบ แสดงถนน แม่น้ำ พื้นที่สีเขียว และที่พักที่เลือก"></canvas>
+          </section>
+          <div id="listingGrid" class="listing-grid" aria-live="polite"><div class="loading-card">กำลังอ่านข้อมูลที่พัก…</div></div>
+          <div class="pagination"><button id="previousPage" class="button button-quiet" type="button">ก่อนหน้า</button><span id="pageStatus">หน้า 1</span><button id="nextPage" class="button button-quiet" type="button">ถัดไป</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="analyticsView" class="view shell" hidden>
+      <div class="page-heading"><div><p class="eyebrow">USER SUBMISSIONS</p><h1>การวิเคราะห์ข้อมูลประเมินที่พัก</h1></div></div>
+      <div id="analyticsLoading" class="panel loading-card">กำลังอ่านข้อมูลประเมินจาก Workbook…</div>
+      <div id="analyticsContent" hidden>
+        <div class="analysis-toolbar"><div id="analyticsSource" class="analytics-source"></div><button id="refreshAnalysis" class="button button-secondary" type="button">รีเฟรชข้อมูล</button></div>
+        <div id="analyticsMetricGrid" class="metric-grid analytics-metrics"></div>
+        <section class="submission-analysis-grid">
+          <article class="panel analytics-section"><p class="section-kicker">FEASIBILITY</p><h2>ความเป็นไปได้ตามตลาด</h2><div id="feasibilityChart" class="summary-bars"></div></article>
+          <article class="panel analytics-section"><p class="section-kicker">PRICE POSITION</p><h2>สถานะราคาที่เสนอ</h2><div id="priceStatusChart" class="summary-bars"></div></article>
+          <article class="panel analytics-section occupancy-card"><p class="section-kicker">OCCUPANCY</p><h2>อัตราเข้าพักเฉลี่ย</h2><div id="occupancyComparison" class="occupancy-comparison"></div></article>
+        </section>
+        <section class="panel analytics-section analytics-last">
+          <div class="analytics-section-heading"><div><p class="section-kicker">RECENT RESULTS</p><h2>รายการประเมินล่าสุด</h2><p class="analytics-description">แสดงผลสำคัญจาก K–U สูงสุด 10 รายการล่าสุด</p></div></div>
+          <div class="table-scroll"><table class="data-table"><thead><tr><th>วันที่</th><th>เขต / ประเภทห้อง</th><th>ราคามัธยฐานตลาด</th><th>ตำแหน่งราคา</th><th>อัตราคุ้มทุน</th><th>ราคาเป้าหมาย</th><th>ผลประเมิน</th></tr></thead><tbody id="submissionAnalysisBody"></tbody></table></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="manageView" class="view shell" hidden>
+      <div class="page-heading"><div><p class="eyebrow">PROPERTY EVALUATION</p><h1>เพิ่มข้อมูลประเมินที่พัก</h1></div></div>
+      <ol id="managementSteps" class="steps" aria-label="ขั้นตอนการกรอกข้อมูล">
+        <li class="step is-active" data-step="1"><span class="step-number">1</span><span class="step-label">กรอกข้อมูลประเมิน</span></li>
+        <li class="step" data-step="2"><span class="step-number">2</span><span class="step-label">ตรวจทานและส่ง</span></li>
+      </ol>
+      <section id="formPanel" class="panel" aria-labelledby="formTitle" hidden>
+        <div class="section-heading"><div><p class="section-kicker">ขั้นตอนที่ 1</p><h2 id="formTitle">กรอกข้อมูลประเมินที่พัก</h2></div><p>ตัวเลือกเขตและประเภทห้องอ่านจาก <code>tblLookup</code> จริง</p></div>
+        <div class="sheet-summary"><div><span>Sheet</span><strong id="sheetName"></strong></div><div><span>คอลัมน์</span><strong id="fieldCount"></strong></div></div>
+        <form id="dataForm" novalidate><div id="formFields" class="form-grid"></div><div class="form-actions"><button class="button button-primary" type="submit">ตรวจทานข้อมูล</button></div></form>
+      </section>
+      <section id="reviewPanel" class="panel" aria-labelledby="reviewTitle" hidden>
+        <div class="section-heading"><div><p class="section-kicker">ขั้นตอนที่ 2</p><h2 id="reviewTitle">ตรวจทานก่อนส่ง</h2></div><button id="editButton" class="button button-quiet" type="button">กลับไปแก้ไข</button></div>
+        <div class="request-card"><span>request_id สำหรับรายการนี้</span><code id="requestId"></code><small>หากส่งซ้ำหลังเกิดข้อผิดพลาด ระบบจะใช้รหัสเดิม</small></div>
+        <dl id="reviewList" class="review-list"></dl>
+        <div id="submissionResult" class="submission-result" hidden></div>
+        <div class="form-actions"><button id="submitButton" class="button button-primary" type="button">ส่งข้อมูล</button><button id="newEntryButton" class="button button-secondary" type="button" hidden>กรอกรายการใหม่</button></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="listingDialog" class="listing-dialog"><button id="closeDialog" class="dialog-close" type="button" aria-label="ปิดรายละเอียด">×</button><div id="listingDetail"></div></dialog>
+  <footer><strong>StayHub</strong><span>ข้อมูลตั้งต้นไม่มีรูปจริง ภาพจาก Unsplash เป็นภาพประกอบและไม่ใช่ภาพจริงของที่พัก ส่วนสถานะไม่ว่างไม่สามารถใช้แทนอัตราการเข้าพักจริง</span></footer>
+  <script src="/app.js" defer></script>
+</body>
+</html>
