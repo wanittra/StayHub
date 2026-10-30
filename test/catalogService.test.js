@@ -27,11 +27,9 @@ test('อ่านรายละเอียด listing และไม่พ�
   assert.equal(await service.getListing('ไม่มีรหัสนี้'), null);
 });
 
-test('ใช้รีวิวและ calendar_monthly เมื่อไม่มี calendar รายวัน', async () => {
+test('อ่านวันที่รีวิวและข้อมูลสรุปจาก calendar_monthly', async () => {
   const service = createCatalogService(path.resolve(__dirname, '../file'));
   const activity = await service.getActivity('27934');
-  assert.deepEqual(activity.calendar, []);
-  assert.match(activity.calendar_note, /ไม่มีปฏิทินรายวัน/);
   assert.ok(Array.isArray(activity.reviews));
 
   const overview = await service.getOverview();

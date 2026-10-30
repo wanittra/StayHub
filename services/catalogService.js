@@ -172,7 +172,7 @@ function createCatalogService(dataDirectory) {
     return item ? publicListing(item) : null;
   }
 
-  async function scanActivityFile(filePath, kind, index, monthly) {
+  async function scanReviewFile(filePath, index, monthly) {
     const stat = await fs.stat(filePath);
     const stream = fsSync.createReadStream(filePath);
     let carry = Buffer.alloc(0);
@@ -198,9 +198,8 @@ function createCatalogService(dataDirectory) {
       }
       const month = date?.slice(0, 7);
       if (/^\d{4}-\d{2}$/.test(month)) {
-        const bucket = monthly[month] || { total: 0, available: 0 };
+        const bucket = monthly[month] || { total: 0 };
         bucket.total += 1;
-        if (kind === 'calendar' && parts[2] === 't') bucket.available += 1;
         monthly[month] = bucket;
       }
     }
@@ -246,7 +245,7 @@ function createCatalogService(dataDirectory) {
         reviews: {}, reviews_monthly: {},
         built_at: new Date().toISOString(),
       };
-      await scanActivityFile(files.reviews, 'reviews', next.reviews, next.reviews_monthly);
+      await scanReviewFile(files.reviews, next.reviews, next.reviews_monthly);
       activityCache = next;
       activitySignature = signature;
       await fs.mkdir(path.dirname(activityCachePath), { recursive: true });
@@ -256,7 +255,7 @@ function createCatalogService(dataDirectory) {
     try { return await activityPromise; } finally { activityPromise = null; }
   }
 
-  async function readIndexedRows(filePath, range, kind) {
+  async function readIndexedReviews(filePath, range) {
     if (!range) return [];
     const chunks = [];
     for await (const chunk of fsSync.createReadStream(filePath, { start: range.start, end: range.end })) chunks.push(chunk);
@@ -264,12 +263,6 @@ function createCatalogService(dataDirectory) {
     if (!text) return [];
     return text.split('\n').filter(Boolean).map((line) => {
       const values = line.replace(/\r$/, '').split(',');
-      if (kind === 'calendar') {
-        return {
-          listing_id: values[0], date: values[1], available: values[2],
-          minimum_nights: Number(values[3]), maximum_nights: Number(values[4]),
-        };
-      }
       return { listing_id: values[0], date: values[1] };
     });
   }
@@ -278,10 +271,8 @@ function createCatalogService(dataDirectory) {
     const listing = await getListing(id);
     if (!listing) return null;
     const activity = await ensureActivityIndex();
-    const reviews = await readIndexedRows(files.reviews, activity.reviews[String(id)], 'reviews');
+    const reviews = await readIndexedReviews(files.reviews, activity.reviews[String(id)]);
     return {
-      calendar: [],
-      calendar_note: 'ชุดข้อมูลใหม่ไม่มีปฏิทินรายวัน เว็บไซต์จึงแสดง availability_365 จาก listings แทน',
       reviews,
       indexed_at: activity.built_at,
     };

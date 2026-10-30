@@ -72,7 +72,7 @@ EXCEL_WRITE_TIMEOUT_MS=300000
 | GET | `/api/health` | ตรวจโหมด Excel ในเครื่องและชื่อ Workbook |
 | GET | `/api/catalog/listings` | ค้นหา กรอง และแบ่งหน้ารายการที่พัก |
 | GET | `/api/catalog/listings/:id` | รายละเอียดที่พัก |
-| GET | `/api/catalog/listings/:id/activity` | วันที่มีรีวิวของที่พักและคำอธิบายข้อจำกัดปฏิทิน |
+| GET | `/api/catalog/listings/:id/activity` | วันที่มีรีวิวของที่พัก |
 | GET | `/api/catalog/overview` | ข้อมูลสรุปสำหรับหน้าภาพรวม |
 | GET | `/api/catalog/neighbourhoods.geojson` | คืน FeatureCollection ว่างเมื่อไม่มีไฟล์ขอบเขตเขต |
 | GET | `/api/analytics` | ผลวิเคราะห์ที่บันทึกไว้ใน StayHub final |
@@ -102,7 +102,6 @@ pnpm test
 
 - เว็บ localhost ใช้งานได้เฉพาะเครื่องที่รัน หรืออุปกรณ์ในเครือข่ายที่เปิดพอร์ตให้เข้าถึง ไม่มี HTTPS หรือระบบล็อกอินในตัว
 - การสลับบัญชีเป็นการจำลองบทบาทใน Frontend ไม่ใช่ระบบ Login/Authorization ที่ปลอดภัยสำหรับ Production
-- ไม่มี `calendar.csv` จึงไม่แสดงปฏิทินรายวันของแต่ละ listing หน้า Overview ใช้ `calendar_monthly.csv` แทน
 - ไม่มี `neighbourhoods.geojson` จึงแสดงเฉพาะจุดพิกัดที่พักโดยไม่มีเส้นขอบเขตเขต
 - หน้า Dashboard อ่านค่าที่ Workbook บันทึกไว้ครั้งล่าสุดและไม่สั่ง Refresh หรือ Recalculate
 - ค่า `DataFolder` ภายใน Workbook เป็นส่วนของไฟล์ต้นฉบับ เว็บไซต์ไม่แก้ไขค่านี้

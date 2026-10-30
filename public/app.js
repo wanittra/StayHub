@@ -476,51 +476,7 @@ function detailFact(label, value) {
   wrapper.append(term, description); return wrapper;
 }
 
-function renderCalendar(activity, container) {
-  if (!activity.calendar.length) {
-    const heading = document.createElement('div'); heading.className = 'calendar-toolbar';
-    const title = document.createElement('h3'); title.textContent = 'ข้อมูลปฏิทิน'; heading.append(title);
-    const note = document.createElement('p'); note.className = 'data-note';
-    note.textContent = activity.calendar_note || 'ไม่มีข้อมูลปฏิทินรายวันในชุดข้อมูลปัจจุบัน';
-    container.append(heading, note);
-    return;
-  }
-  const months = [...new Set(activity.calendar.map((row) => row.date.slice(0, 7)))].sort();
-  const heading = document.createElement('div'); heading.className = 'calendar-toolbar';
-  const title = document.createElement('h3'); title.textContent = 'ปฏิทินสถานะรายวัน';
-  const select = document.createElement('select'); select.setAttribute('aria-label', 'เลือกเดือนในปฏิทิน');
-  months.forEach((month) => select.append(new Option(month, month)));
-  heading.append(title, select);
-  const grid = document.createElement('div'); grid.className = 'calendar-grid';
-  const note = document.createElement('p'); note.className = 'data-note';
-
-  function drawMonth() {
-    grid.replaceChildren();
-    const month = select.value;
-    if (!month) { grid.textContent = 'ไม่มีข้อมูลปฏิทินสำหรับที่พักนี้'; return; }
-    const [year, monthNumber] = month.split('-').map(Number);
-    const firstDay = new Date(Date.UTC(year, monthNumber - 1, 1)).getUTCDay();
-    const days = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
-    const byDate = new Map(activity.calendar.map((row) => [row.date, row]));
-    for (let blank = 0; blank < firstDay; blank += 1) { const cell = document.createElement('div'); grid.append(cell); }
-    for (let day = 1; day <= days; day += 1) {
-      const date = `${month}-${String(day).padStart(2, '0')}`;
-      const row = byDate.get(date);
-      const cell = document.createElement('div');
-      cell.className = `calendar-day ${row ? (row.available === 't' ? 'is-open' : 'is-closed') : 'is-missing'}`;
-      const number = document.createElement('strong'); number.textContent = String(day);
-      const status = document.createElement('span'); status.textContent = row ? (row.available === 't' ? 'เปิดให้จอง' : 'ไม่เปิดให้จอง') : 'ไม่มีข้อมูล';
-      cell.title = row ? `ขั้นต่ำ ${row.minimum_nights} คืน · สูงสุด ${row.maximum_nights} คืน` : 'ไม่มีข้อมูลสำหรับวันนี้';
-      cell.append(number, status); grid.append(cell);
-    }
-    note.textContent = 'แตะหรือชี้วันที่เพื่อดูจำนวนคืนขั้นต่ำ–สูงสุด';
-  }
-  select.addEventListener('change', drawMonth);
-  drawMonth();
-  container.append(heading, grid, note);
-}
-
-async function openListingDetail(item) {
+function openListingDetail(item) {
   selectListingOnMap(item, false);
   elements.listingDetail.replaceChildren();
   const hero = document.createElement('div'); hero.className = 'detail-hero';
@@ -539,15 +495,8 @@ async function openListingDetail(item) {
     detailFact('พร้อมให้บริการใน 365 วัน', `${formatNumber(item.availability_365)} วัน`),
     detailFact('พิกัด', item.latitude == null ? 'ไม่ระบุ' : `${item.latitude}, ${item.longitude}`),
   );
-  const activityBox = document.createElement('div'); activityBox.className = 'activity-status';
-  activityBox.textContent = 'กำลังอ่านข้อมูลปฏิทิน…';
-  body.append(facts, activityBox); elements.listingDetail.append(hero, heroImage, body);
+  body.append(facts); elements.listingDetail.append(hero, heroImage, body);
   elements.listingDialog.showModal();
-  try {
-    const activity = await fetchJson(`/api/catalog/listings/${encodeURIComponent(item.id)}/activity`);
-    activityBox.remove();
-    renderCalendar(activity, body);
-  } catch (error) { activityBox.textContent = error.message; }
 }
 
 elements.closeDialog.addEventListener('click', () => elements.listingDialog.close());
