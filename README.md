@@ -22,6 +22,8 @@
 
 ## แหล่งข้อมูล
 
+ชุดข้อมูลที่พักต้นทางดาวน์โหลดจาก [Inside Airbnb — Get the Data](https://insideairbnb.com/get-the-data/)
+
 | ไฟล์ | การใช้งาน |
 | --- | --- |
 | `file/listings.csv` | รายการที่พัก ตัวกรอง พิกัด และข้อมูลสรุป |
